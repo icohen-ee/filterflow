@@ -28,6 +28,9 @@
         </div>
       </div>
       <div class="top-actions">
+        <button id="settings-btn" class="icon-btn" aria-label="Settings & Cloud Sync" title="Google Sheets Cloud Sync Settings">
+          <span class="gear-icon" aria-hidden="true">⚙️</span>
+        </button>
         <button id="share-btn" class="icon-btn" aria-label="Household Sharing" title="Share with Wife's iPhone & Devices">
           <span class="share-icon" aria-hidden="true">👨‍👩‍👧</span>
         </button>
@@ -37,6 +40,15 @@
         </button>
       </div>
     </header>
+
+    <!-- Cloud & Sync Status Banner -->
+    <div id="sync-banner" class="sync-banner" role="status" aria-live="polite">
+      <div class="sync-banner-info">
+        <span id="sync-indicator-dot" class="sync-dot green"></span>
+        <span id="sync-status-text">Loading storage...</span>
+      </div>
+      <button id="sync-quick-btn" class="btn-text-action" title="Sync now with Google Sheets">Sync Now</button>
+    </div>
 
     <!-- Health Overview Stats Bar -->
     <section class="stats-overview" id="stats-overview" aria-label="Filter Health Overview">
@@ -476,6 +488,80 @@
         <div class="dialog-actions">
           <button type="button" class="btn btn-primary" id="done-share-btn">Done</button>
         </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Dialog 6: Google Sheets Cloud Sync & Settings Dialog -->
+  <dialog id="settings-dialog" class="m3-dialog" closedby="any" aria-labelledby="settings-dialog-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2 id="settings-dialog-title" class="dialog-title">⚙️ Google Sheets Cloud Sync</h2>
+        <button type="button" class="dialog-close-btn" onclick="document.getElementById('settings-dialog').close()" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="dialog-body">
+        <p class="dialog-desc">
+          Store and share your filter database in a <strong>Google Sheet</strong> in Google Drive. Works 100% offline and automatically syncs when online.
+        </p>
+
+        <form id="settings-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="settings-sheets-url">Google Apps Script Web App URL</label>
+            <input type="url" id="settings-sheets-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+            <p class="form-hint">From your Google Sheet (Extensions &gt; Apps Script &gt; Deploy as Web App).</p>
+          </div>
+
+          <div class="form-group">
+            <label for="settings-user-role">Identify My Device As</label>
+            <select id="settings-user-role" class="form-control">
+              <option value="Isaac">Isaac (Pixel 10 Pro)</option>
+              <option value="Wife">Wife (iPhone)</option>
+              <option value="Household">Household (Shared)</option>
+            </select>
+            <p class="form-hint">Used for attribution when marking replaced or snoozing filters.</p>
+          </div>
+
+          <div class="sync-detail-card">
+            <div class="sync-detail-row">
+              <span>Sync Status:</span>
+              <strong id="settings-sync-status-badge">Offline Local Storage</strong>
+            </div>
+            <div class="sync-detail-row">
+              <span>Last Synced:</span>
+              <span id="settings-last-synced-time">Never</span>
+            </div>
+            <div class="sync-detail-row">
+              <span>Pending Offline Queue:</span>
+              <span id="settings-pending-count">0 changes queued</span>
+            </div>
+          </div>
+
+          <details class="setup-accordion">
+            <summary><strong>📋 How to connect your free Google Sheet (3 mins)</strong></summary>
+            <div class="setup-accordion-content">
+              <ol class="setup-steps">
+                <li>Create a new spreadsheet in <a href="https://sheets.new" target="_blank" rel="noopener">Google Sheets</a> named <strong>FilterFlow Data</strong>.</li>
+                <li>Share the spreadsheet with your wife's Google account so you both have access.</li>
+                <li>Click <strong>Extensions &gt; Apps Script</strong>.</li>
+                <li>Replace all code in <code>Code.gs</code> with the script from <code>google_sheets_sync_script.js</code> in this project.</li>
+                <li>Click <strong>Deploy &gt; New deployment</strong>:
+                  <ul>
+                    <li>Type: <strong>Web app</strong></li>
+                    <li>Execute as: <strong>Me</strong></li>
+                    <li>Who has access: <strong>Anyone</strong></li>
+                  </ul>
+                </li>
+                <li>Authorize permissions and copy the <strong>Web App URL</strong> into the field above!</li>
+              </ol>
+            </div>
+          </details>
+
+          <div class="dialog-actions" style="margin-top: 18px;">
+            <button type="button" class="btn btn-secondary" id="force-sync-now-btn">🔄 Sync Now</button>
+            <button type="button" class="btn btn-primary" id="save-settings-btn">Save &amp; Connect</button>
+          </div>
+        </form>
       </div>
     </div>
   </dialog>

@@ -1,12 +1,12 @@
-// FilterFlow PWA Service Worker
-const CACHE_NAME = 'filterflow-v1';
+// FilterFlow PWA Service Worker (Offline First)
+const CACHE_NAME = 'filterflow-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/manifest.json',
-  '/icon.svg'
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -32,8 +32,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Always fetch API dynamically
-  if (event.request.url.includes('/api/')) {
+  // Let Google Apps Script and local /api/ pass through to network
+  if (event.request.url.includes('script.google.com') || 
+      event.request.url.includes('script.googleusercontent.com') || 
+      event.request.url.includes('/api/')) {
     return;
   }
 
@@ -52,6 +54,6 @@ self.addEventListener('fetch', (event) => {
         });
         return response;
       });
-    }).catch(() => caches.match('/index.html'))
+    }).catch(() => caches.match('./index.html'))
   );
 });

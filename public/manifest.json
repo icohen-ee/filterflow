@@ -2,13 +2,14 @@
   "name": "FilterFlow — Smart Filter Tracker",
   "short_name": "FilterFlow",
   "description": "Smart maintenance tracker for home and vehicle filters",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#121316",
-  "theme_color": "#1e2025",
+  "background_color": "#0d1117",
+  "theme_color": "#161b22",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "./icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
