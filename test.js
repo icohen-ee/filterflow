@@ -385,7 +385,146 @@ assert.deepStrictEqual(loadedCorrupt, [], 'Should recover gracefully with empty 
 if (fs.existsSync(corruptDbPath)) fs.unlinkSync(corruptDbPath);
 console.log('✅ 30. Corrupted database file handled gracefully without crashing.');
 
-// Cleanup test db
-if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
+console.log('\n--- SECTION 6: Cross-Platform & Household Sharing Suite ---');
 
-console.log('\n🎉 ALL 30 UNIT, EDGE-CASE, AND SECURITY TESTS PASSED SUCCESSFULLY!\n');
+// 31. Filter creation with household owner assignment
+const isaacFilter = engine.addFilter({
+  name: "Isaac's Garage Workshop Purifier",
+  category: 'Portable Appliance',
+  installedDate: '2026-08-01',
+  serviceLifeDays: 90,
+  owner: 'Isaac'
+});
+assert.strictEqual(isaacFilter.owner, 'Isaac');
+assert.strictEqual(isaacFilter.lastReplacedBy, 'Isaac');
+
+const wifeFilter = engine.addFilter({
+  name: "Wife's Office Desk Air Filter",
+  category: 'Portable Appliance',
+  installedDate: '2026-08-01',
+  serviceLifeDays: 90,
+  owner: 'Wife'
+});
+assert.strictEqual(wifeFilter.owner, 'Wife');
+assert.strictEqual(wifeFilter.lastReplacedBy, 'Wife');
+console.log('✅ 31. Filter creation with household owner assignment passed.');
+
+// 32. Filtering by household member owner
+const wifeFilters = engine.getAllFilters(new Date('2026-09-19'), { owner: 'Wife' });
+assert(wifeFilters.some(f => f.name === "Wife's Office Desk Air Filter"), 'Wife should see her own filter');
+assert(!wifeFilters.some(f => f.name === "Isaac's Garage Workshop Purifier"), 'Wife should not see Isaac-only filter');
+
+const isaacFilters = engine.getAllFilters(new Date('2026-09-19'), { owner: 'Isaac' });
+assert(isaacFilters.some(f => f.name === "Isaac's Garage Workshop Purifier"), 'Isaac should see his own filter');
+assert(!isaacFilters.some(f => f.name === "Wife's Office Desk Air Filter"), 'Isaac should not see Wife-only filter');
+console.log('✅ 32. Household owner filtering in getAllFilters passed.');
+
+// 33. Mark replaced records attribution and history
+const replacedByWife = engine.markReplaced(wifeFilter.id, '2026-09-19', 'Installed fresh HEPA cartridge', 'Wife');
+assert.strictEqual(replacedByWife.lastReplacedBy, 'Wife');
+assert.strictEqual(replacedByWife.installedDate, '2026-09-19');
+const latestHistory = replacedByWife.history[replacedByWife.history.length - 1];
+assert.strictEqual(latestHistory.replacedBy, 'Wife');
+assert(latestHistory.action.includes('Installed fresh HEPA cartridge'), 'Action notes should reference notes');
+console.log('✅ 33. Mark replaced with family member attribution passed.');
+
+// 34. Natural language fuzzy filter matching on production filter catalog
+const prodEngine = new FilterEngine();
+const matchedFridge = prodEngine.findFilter('refrigerator ice filter');
+assert(matchedFridge && matchedFridge.id === 'filter-fridge-water', 'Should match fridge filter');
+
+const matchedHvac = prodEngine.findFilter('hallway return ac filter');
+assert(matchedHvac && matchedHvac.id === 'filter-hvac-main', 'Should match central HVAC return');
+
+const matchedCabin = prodEngine.findFilter('glovebox cabin air');
+assert(matchedCabin && matchedCabin.id === 'filter-car-cabin', 'Should match car cabin filter');
+
+const matchedEngine = prodEngine.findFilter('car engine intake under hood');
+assert(matchedEngine && matchedEngine.id === 'filter-car-engine', 'Should match car engine filter');
+
+const matchedPurifier = prodEngine.findFilter('bedroom purifier fan');
+assert(matchedPurifier && matchedPurifier.id === 'filter-room-fan', 'Should match bedroom purifier');
+console.log('✅ 34. Natural language keyword and synonym fuzzy matching passed.');
+
+// 35. Stop words rejection prevents false-matching in general queries
+const stopWordsMatch = prodEngine.findFilter('what is due');
+assert.strictEqual(stopWordsMatch, null, 'Generic queries with only stop words must return null');
+console.log('✅ 35. Query stop words correctly prevent false-positive filter matches.');
+
+// 36. Assistant query handler: general summary
+const summaryResult = prodEngine.handleAssistantCommand('what filters are due?');
+assert.strictEqual(summaryResult.success, true);
+assert.strictEqual(summaryResult.actionTaken, 'summary');
+assert(summaryResult.reply.includes('FilterFlow — Household Filter Status'));
+assert(summaryResult.reply.includes('Pixel 10 Pro & iPhone'));
+console.log('✅ 36. Assistant command: general summary with WhatsApp formatting passed.');
+
+// 37. Assistant query handler: specific filter status
+const statusResult = prodEngine.handleAssistantCommand('when is the fridge filter due?');
+assert.strictEqual(statusResult.success, true);
+assert.strictEqual(statusResult.actionTaken, 'filter_status');
+assert(statusResult.reply.includes('Refrigerator Water & Ice Filter'));
+assert(statusResult.reply.includes('EveryDrop'));
+console.log('✅ 37. Assistant command: specific filter status inquiry passed.');
+
+// 38. Assistant query handler: conversational replacement command
+const replaceResult = prodEngine.handleAssistantCommand('replaced fridge filter today', 'Wife');
+assert.strictEqual(replaceResult.success, true);
+assert.strictEqual(replaceResult.actionTaken, 'mark_replaced');
+assert(replaceResult.reply.includes('Marked Refrigerator Water & Ice Filter as replaced today by Wife'));
+const refetchedFridge = prodEngine.getFilterById('filter-fridge-water');
+assert.strictEqual(refetchedFridge.lastReplacedBy, 'Wife');
+console.log('✅ 38. Assistant command: conversational replacement by Wife passed.');
+
+// 39. Assistant query handler: history and attribution inquiry
+const historyResult = prodEngine.handleAssistantCommand('who replaced the fridge filter last?');
+assert.strictEqual(historyResult.success, true);
+assert.strictEqual(historyResult.actionTaken, 'who_replaced');
+assert(historyResult.reply.includes('was last replaced on'));
+assert(historyResult.reply.includes('Wife'));
+console.log('✅ 39. Assistant command: who replaced inquiry with attribution passed.');
+
+// 40. Assistant query handler: vacation snooze command
+const snoozeResult = prodEngine.handleAssistantCommand('snooze hvac 14 days', 'Isaac');
+assert.strictEqual(snoozeResult.success, true);
+assert.strictEqual(snoozeResult.actionTaken, 'snooze');
+assert(snoozeResult.reply.includes('Snoozed Central HVAC Return Filter by 14 days'));
+assert(snoozeResult.reply.includes('Requested by: Isaac'));
+console.log('✅ 40. Assistant command: vacation snooze with attribution passed.');
+
+// 41. Assistant query handler: 1-click reorder link command
+const buyResult = prodEngine.handleAssistantCommand('buy car cabin filter');
+assert.strictEqual(buyResult.success, true);
+assert.strictEqual(buyResult.actionTaken, 'buy_link');
+assert(buyResult.reply.includes('1-Click Reorder for Car Cabin Air Filter (HVAC)'));
+assert(buyResult.reply.includes('https://www.amazon.com/s?k=car+cabin+air+filter'));
+console.log('✅ 41. Assistant command: 1-Click Amazon reorder link query passed.');
+
+// 42. Assistant query handler: cross-platform sharing guide
+const shareResult = prodEngine.handleAssistantCommand("how to install on wife's iphone");
+assert.strictEqual(shareResult.success, true);
+assert.strictEqual(shareResult.actionTaken, 'share_info');
+assert(shareResult.reply.includes("Wife's iPhone"));
+assert(shareResult.reply.includes('Pixel 10 Pro'));
+assert(shareResult.reply.includes('http://192.168.86.47:3030'));
+console.log('✅ 42. Assistant command: cross-platform sharing guide query passed.');
+
+// 43. Pure JS QR code SVG generation
+import('./qr.js').then(({ generateQrSvg, encodeQrCode }) => {
+  const qrSvg = generateQrSvg('http://192.168.86.47:3030', { size: 240, margin: 3 });
+  assert(qrSvg.includes('<svg'), 'Should contain <svg tag');
+  assert(qrSvg.includes('viewBox="0 0 240 240"'), 'Should have matching viewBox');
+  assert(qrSvg.includes('<path d='), 'Should render QR modules as SVG path');
+  
+  const encoded = encodeQrCode('http://192.168.86.47:3030', 'M');
+  assert(encoded.size > 20, 'QR matrix dimension should be > 20');
+  console.log('✅ 43. Pure JS zero-dependency QR code SVG generation passed.');
+
+  // Cleanup test db
+  engine.deleteFilter(isaacFilter.id);
+  engine.deleteFilter(wifeFilter.id);
+  if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
+
+  console.log('\n🎉 ALL 43 UNIT, EDGE-CASE, AND HOUSEHOLD SHARING TESTS PASSED SUCCESSFULLY!\n');
+});
+

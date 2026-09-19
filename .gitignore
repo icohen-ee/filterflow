@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Runtime Logs
+*.log
+server.log
+
+# Local SSL Certificates & Private Keys
+certs/
+*.pem
+
+# Test Artifacts
+data/test_filters.json
+data/corrupt_test.json
+
+# OS & Environment files
+.DS_Store
+Thumbs.db
+.env

@@ -1,0 +1,73 @@
+[
+  {
+    "id": "filter-hvac-main",
+    "name": "Central HVAC Return Filter",
+    "category": "Home HVAC",
+    "location": "Main Hallway Ceiling Return",
+    "manufacturer": "Filtrete",
+    "modelNumber": "20x25x1 MPR 1500 (MERV 12)",
+    "installedDate": "2026-07-01",
+    "serviceLifeDays": 90,
+    "reorderUrl": "https://www.amazon.com/dp/B00T4CH2DY",
+    "notes": "Change quarterly. High filtration for allergies.",
+    "lastSnoozeDays": 0,
+    "history": [
+      {
+        "date": "2026-09-19",
+        "action": "Snoozed 30 days (Vacation / low usage extension)"
+      }
+    ]
+  },
+  {
+    "id": "filter-car-cabin",
+    "name": "Car Cabin Air Filter (HVAC)",
+    "category": "Vehicle",
+    "location": "Behind Glove Compartment",
+    "manufacturer": "EPAuto / Bosch",
+    "modelNumber": "HEPA Cabin Filter CP134",
+    "installedDate": "2025-11-15",
+    "serviceLifeDays": 365,
+    "reorderUrl": "https://www.amazon.com/s?k=car+cabin+air+filter",
+    "notes": "Inspect during annual oil change.",
+    "lastSnoozeDays": 0
+  },
+  {
+    "id": "filter-car-engine",
+    "name": "Car Engine Intake Air Filter",
+    "category": "Vehicle",
+    "location": "Under Hood / Engine Bay Airbox",
+    "manufacturer": "Fram / OEM",
+    "modelNumber": "Extra Guard CA10190",
+    "installedDate": "2025-10-01",
+    "serviceLifeDays": 365,
+    "reorderUrl": "https://www.amazon.com/s?k=engine+intake+air+filter",
+    "notes": "Protects engine combustion intake from debris.",
+    "lastSnoozeDays": 0
+  },
+  {
+    "id": "filter-fridge-water",
+    "name": "Refrigerator Water & Ice Filter",
+    "category": "Appliance",
+    "location": "Refrigerator Bottom Grille / Interior Compartment",
+    "manufacturer": "EveryDrop / OEM",
+    "modelNumber": "Filter 1 (EDR1RXD1)",
+    "installedDate": "2026-04-10",
+    "serviceLifeDays": 180,
+    "reorderUrl": "https://www.amazon.com/dp/B00V5I8V0G",
+    "notes": "Replace every 6 months to maintain water flow and NSF 53 filtration.",
+    "lastSnoozeDays": 0
+  },
+  {
+    "id": "filter-room-fan",
+    "name": "Bedroom Air Purifier / Fan Filter",
+    "category": "Portable Appliance",
+    "location": "Primary Bedroom",
+    "manufacturer": "Levoit / Dyson",
+    "modelNumber": "True HEPA Replacement Core 300-RF",
+    "installedDate": "2026-05-01",
+    "serviceLifeDays": 180,
+    "reorderUrl": "https://www.amazon.com/s?k=true+hepa+air+purifier+replacement+filter",
+    "notes": "Vacuum pre-filter screen monthly.",
+    "lastSnoozeDays": 0
+  }
+]

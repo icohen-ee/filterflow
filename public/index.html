@@ -28,6 +28,9 @@
         </div>
       </div>
       <div class="top-actions">
+        <button id="share-btn" class="icon-btn" aria-label="Household Sharing" title="Share with Wife's iPhone & Devices">
+          <span class="share-icon" aria-hidden="true">👨‍👩‍👧</span>
+        </button>
         <button id="notif-btn" class="icon-btn" aria-label="Notifications" title="View Active Alerts">
           <span class="bell-icon" aria-hidden="true">🔔</span>
           <span id="notif-badge" class="badge">0</span>
@@ -54,6 +57,14 @@
         <span class="stat-lbl">🚨 Overdue</span>
       </div>
     </section>
+
+    <!-- Household Member Filter Chips -->
+    <nav class="household-tabs" id="household-tabs" aria-label="Filter by family member">
+      <span class="household-label">Assigned:</span>
+      <button class="member-chip active" data-owner="all">👥 All Household</button>
+      <button class="member-chip" data-owner="Isaac">👤 Isaac (Pixel 10 Pro)</button>
+      <button class="member-chip" data-owner="Wife">👤 Wife (iPhone)</button>
+    </nav>
 
     <!-- Search & Filter Bar -->
     <div class="search-bar-wrap">
@@ -136,6 +147,15 @@
               <div class="preview-label">Next Target Expiration Date</div>
               <div class="preview-value" id="replace-next-due-preview">—</div>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label for="replace-by" class="form-label">Replaced By</label>
+            <select id="replace-by" class="form-input">
+              <option value="Isaac">Isaac (Pixel 10 Pro)</option>
+              <option value="Wife">Wife (iPhone)</option>
+              <option value="Household" selected>Shared / Other</option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -350,6 +370,15 @@
         </div>
 
         <div class="form-group">
+          <label for="form-owner" class="form-label">Household Owner / Assigned To</label>
+          <select id="form-owner" class="form-input">
+            <option value="Household" selected>Shared / All Household</option>
+            <option value="Isaac">Isaac (Pixel 10 Pro)</option>
+            <option value="Wife">Wife (iPhone)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="form-url" class="form-label">1-Click Amazon / Reorder URL</label>
           <input type="url" id="form-url" class="form-input" placeholder="https://www.amazon.com/dp/...">
           <small class="form-help">Leave blank to auto-generate a 1-click Amazon search query.</small>
@@ -365,6 +394,89 @@
           <button type="submit" class="btn btn-primary" id="submit-add-btn">Save Filter</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DIALOG: Household & Device Sharing                                   -->
+  <!-- ========================================================================= -->
+  <dialog id="share-dialog" class="app-dialog" closedby="any" aria-labelledby="share-dialog-title">
+    <div class="dialog-content share-dialog-content">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-icon" aria-hidden="true">👨‍👩‍👧</span>
+          <div>
+            <h2 id="share-dialog-title" class="dialog-title">Household & Device Sharing</h2>
+            <p class="dialog-subtitle">Pixel 10 Pro, Wife's iPhone & OpenClaw WhatsApp</p>
+          </div>
+        </div>
+        <button type="button" class="dialog-close-btn" id="close-share-dialog" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="dialog-body">
+        <!-- Live QR Code Card -->
+        <div class="share-qr-card">
+          <div class="qr-preview-box" id="share-qr-container">
+            <div class="qr-loading">Loading QR code...</div>
+          </div>
+          <div class="share-url-group">
+            <label class="form-label">Local Wi-Fi Network URL:</label>
+            <div class="share-url-box">
+              <input type="text" id="share-url-input" class="share-url-input" readonly value="http://192.168.86.47:3030">
+              <button type="button" class="btn btn-sm btn-secondary" id="copy-share-url-btn">📋 Copy</button>
+            </div>
+            <p class="share-url-hint">Both phones must be connected to the home Wi-Fi network.</p>
+          </div>
+        </div>
+
+        <!-- Platform Installation & Assistant Guides -->
+        <div class="device-guides-container">
+          <!-- Guide 1: Wife's iPhone -->
+          <div class="device-guide-card ios-guide">
+            <div class="guide-header">
+              <span class="guide-badge ios">🍏 Wife's iPhone (Safari PWA)</span>
+            </div>
+            <ol class="guide-steps">
+              <li>Scan the QR code with iPhone Camera (or open in <strong>Safari</strong>).</li>
+              <li>Tap the <strong>Share</strong> button (<span class="symbol">⎋</span>) in Safari bottom bar.</li>
+              <li>Tap <strong>"Add to Home Screen"</strong> (<span class="symbol">➕</span>) and tap <strong>Add</strong>.</li>
+              <li>FilterFlow runs in standalone mode with instant startup and badging!</li>
+            </ol>
+          </div>
+
+          <!-- Guide 2: Google Pixel 10 Pro -->
+          <div class="device-guide-card android-guide">
+            <div class="guide-header">
+              <span class="guide-badge android">🤖 Pixel 10 Pro (Chrome WebAPK)</span>
+            </div>
+            <ol class="guide-steps">
+              <li>Open link in <strong>Google Chrome</strong> on Android.</li>
+              <li>Tap the <strong>"Install app"</strong> banner or menu (<strong>⋮</strong>) -> <strong>Install App</strong>.</li>
+              <li>Installs as a native WebAPK in launcher with notification categories.</li>
+            </ol>
+          </div>
+
+          <!-- Guide 3: OpenClaw WhatsApp Assistant -->
+          <div class="device-guide-card whatsapp-guide">
+            <div class="guide-header">
+              <span class="guide-badge whatsapp">💬 OpenClaw WhatsApp Assistant</span>
+            </div>
+            <p class="whatsapp-desc">Isaac & Wife can both ask the AI assistant directly in WhatsApp chat:</p>
+            <ul class="whatsapp-prompts">
+              <li>• <em>"What filters are due?"</em></li>
+              <li>• <em>"When is the fridge filter due?"</em></li>
+              <li>• <em>"Replaced fridge filter today"</em></li>
+              <li>• <em>"Snooze HVAC filter 14 days"</em></li>
+              <li>• <em>"Who replaced the HVAC filter last?"</em></li>
+              <li>• <em>"Buy car cabin filter"</em></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" id="done-share-btn">Done</button>
+        </div>
+      </div>
     </div>
   </dialog>
 

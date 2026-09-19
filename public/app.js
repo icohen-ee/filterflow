@@ -6,15 +6,18 @@
 let allFilters = [];
 let activeCategory = 'all';
 let activeStatusFilter = 'all';
+let activeOwnerFilter = 'all';
 let searchQuery = '';
 
 // DOM Elements
 const filterList = document.getElementById('filter-list');
 const categoryTabs = document.getElementById('category-tabs');
+const householdTabs = document.getElementById('household-tabs');
 const searchInput = document.getElementById('filter-search');
 const clearSearchBtn = document.getElementById('clear-search');
 const notifBtn = document.getElementById('notif-btn');
 const notifBadge = document.getElementById('notif-badge');
+const shareBtn = document.getElementById('share-btn');
 const addBtn = document.getElementById('add-btn');
 
 // Dialog Elements
@@ -22,6 +25,7 @@ const replaceDialog = document.getElementById('replace-dialog');
 const snoozeDialog = document.getElementById('snooze-dialog');
 const historyDialog = document.getElementById('history-dialog');
 const notifDialog = document.getElementById('notif-dialog');
+const shareDialog = document.getElementById('share-dialog');
 const addDialog = document.getElementById('add-dialog');
 
 // Initialize light-dismiss fallbacks for modern dialogs
@@ -29,6 +33,7 @@ setupDialogLightDismiss(replaceDialog);
 setupDialogLightDismiss(snoozeDialog);
 setupDialogLightDismiss(historyDialog);
 setupDialogLightDismiss(notifDialog);
+setupDialogLightDismiss(shareDialog);
 setupDialogLightDismiss(addDialog);
 
 // ============================================================================
@@ -117,6 +122,11 @@ function renderFilters() {
     filtered = filtered.filter(f => f.status === activeStatusFilter);
   }
 
+  // Filter by household member owner
+  if (activeOwnerFilter !== 'all') {
+    filtered = filtered.filter(f => f.owner === activeOwnerFilter || f.owner === 'Household');
+  }
+
   // Filter by search query
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase().trim();
@@ -125,7 +135,9 @@ function renderFilters() {
       (f.location && f.location.toLowerCase().includes(q)) ||
       (f.manufacturer && f.manufacturer.toLowerCase().includes(q)) ||
       (f.modelNumber && f.modelNumber.toLowerCase().includes(q)) ||
-      (f.notes && f.notes.toLowerCase().includes(q))
+      (f.notes && f.notes.toLowerCase().includes(q)) ||
+      (f.owner && f.owner.toLowerCase().includes(q)) ||
+      (f.lastReplacedBy && f.lastReplacedBy.toLowerCase().includes(q))
     );
   }
 
@@ -134,7 +146,7 @@ function renderFilters() {
       <div class="empty-state">
         <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
         <h3 style="font-size: 16px; margin-bottom: 4px;">No matching filters</h3>
-        <p style="font-size: 13px; color: var(--text-secondary);">Try clearing your search or category filter.</p>
+        <p style="font-size: 13px; color: var(--text-secondary);">Try clearing your search, category, or household filter.</p>
         <button class="btn btn-secondary" onclick="resetFilters()" style="margin-top: 12px;">Reset Filters</button>
       </div>
     `;
@@ -181,7 +193,10 @@ function renderFilters() {
         <!-- Card Header -->
         <div class="card-header">
           <div class="card-title-wrap">
-            <span class="category-badge">${escapeHtml(f.category || 'General')}</span>
+            <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
+              <span class="category-badge">${escapeHtml(f.category || 'General')}</span>
+              <span class="owner-tag">👤 ${escapeHtml(f.owner || 'Household')}</span>
+            </div>
             <h3 class="card-title">${escapeHtml(f.name)}</h3>
             <p class="card-location">📍 ${escapeHtml(f.location || 'Household')}</p>
           </div>
@@ -227,8 +242,12 @@ function renderFilters() {
             <span class="spec-val">${escapeHtml(f.manufacturer || 'OEM')}</span>
           </div>
           <div class="spec-row">
-            <span class="spec-key">Installed</span>
-            <span class="spec-val">${formattedInstalled} (${f.serviceLifeDays}d cycle${f.lastSnoozeDays ? ` +${f.lastSnoozeDays}d snooze` : ''})</span>
+            <span class="spec-key">Last Replaced</span>
+            <span class="spec-val">${formattedInstalled} by <strong>${escapeHtml(f.lastReplacedBy || 'Household')}</strong></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Cycle Period</span>
+            <span class="spec-val">${f.serviceLifeDays}d cycle${f.lastSnoozeDays ? ` (+${f.lastSnoozeDays}d snooze)` : ''}</span>
           </div>
           ${f.notes ? `
             <div class="spec-notes">
@@ -301,6 +320,10 @@ function openReplaceDialog(filterId) {
   });
 
   document.getElementById('replace-notes').value = '';
+  const replaceBySelect = document.getElementById('replace-by');
+  if (replaceBySelect) {
+    replaceBySelect.value = currentReplaceFilter.owner === 'Wife' ? 'Wife' : currentReplaceFilter.owner === 'Isaac' ? 'Isaac' : 'Household';
+  }
   updateReplaceNextDuePreview();
 
   replaceDialog.showModal();
@@ -349,6 +372,7 @@ document.getElementById('replace-form').addEventListener('submit', async (e) => 
   const filterId = document.getElementById('replace-filter-id').value;
   const replacedDate = document.getElementById('replace-date').value;
   const notes = document.getElementById('replace-notes').value.trim();
+  const replacedBy = document.getElementById('replace-by') ? document.getElementById('replace-by').value : 'Household';
 
   const submitBtn = document.getElementById('submit-replace-btn');
   submitBtn.disabled = true;
@@ -358,7 +382,7 @@ document.getElementById('replace-form').addEventListener('submit', async (e) => 
     const res = await fetch(`/api/filters/${filterId}/replace`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ replacedDate, notes })
+      body: JSON.stringify({ replacedDate, notes, replacedBy })
     });
 
     if (!res.ok) {
@@ -578,6 +602,7 @@ document.getElementById('add-form').addEventListener('submit', async (e) => {
     modelNumber: document.getElementById('form-model').value.trim(),
     installedDate: document.getElementById('form-date').value,
     serviceLifeDays: parseInt(document.getElementById('form-life').value, 10),
+    owner: document.getElementById('form-owner') ? document.getElementById('form-owner').value : 'Household',
     reorderUrl: document.getElementById('form-url').value.trim(),
     notes: document.getElementById('form-notes').value.trim()
   };
@@ -642,6 +667,17 @@ categoryTabs.addEventListener('click', (e) => {
   renderFilters();
 });
 
+if (householdTabs) {
+  householdTabs.addEventListener('click', (e) => {
+    const chip = e.target.closest('.member-chip');
+    if (!chip) return;
+    document.querySelectorAll('.member-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeOwnerFilter = chip.dataset.owner;
+    renderFilters();
+  });
+}
+
 searchInput.addEventListener('input', (e) => {
   searchQuery = e.target.value;
   clearSearchBtn.classList.toggle('hidden', !searchQuery);
@@ -659,12 +695,100 @@ clearSearchBtn.addEventListener('click', () => {
 function resetFilters() {
   activeCategory = 'all';
   activeStatusFilter = 'all';
+  activeOwnerFilter = 'all';
   searchQuery = '';
   searchInput.value = '';
   clearSearchBtn.classList.add('hidden');
   document.querySelectorAll('.tab-chip').forEach(c => c.classList.toggle('active', c.dataset.category === 'all'));
+  if (householdTabs) {
+    document.querySelectorAll('.member-chip').forEach(c => c.classList.toggle('active', c.dataset.owner === 'all'));
+  }
   document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('selected'));
   renderFilters();
+}
+
+// ============================================================================
+// Dialog 6: Household & Device Sharing
+// ============================================================================
+
+async function openShareDialog() {
+  if (!shareDialog) return;
+  shareDialog.showModal();
+  try {
+    const res = await fetch('/api/household/share');
+    if (res.ok) {
+      const data = await res.json();
+      const qrContainer = document.getElementById('share-qr-container');
+      const urlInput = document.getElementById('share-url-input');
+      if (qrContainer && data.qrSvg) {
+        qrContainer.innerHTML = data.qrSvg;
+      }
+      if (urlInput && data.httpUrl) {
+        urlInput.value = data.httpUrl;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load household share info:', err);
+  }
+}
+
+if (shareBtn) {
+  shareBtn.addEventListener('click', openShareDialog);
+}
+const closeShareBtn = document.getElementById('close-share-dialog');
+const doneShareBtn = document.getElementById('done-share-btn');
+if (closeShareBtn) closeShareBtn.addEventListener('click', () => shareDialog.close());
+if (doneShareBtn) doneShareBtn.addEventListener('click', () => shareDialog.close());
+
+const copyShareUrlBtn = document.getElementById('copy-share-url-btn');
+if (copyShareUrlBtn) {
+  copyShareUrlBtn.addEventListener('click', async () => {
+    const urlInput = document.getElementById('share-url-input');
+    if (!urlInput) return;
+    try {
+      await navigator.clipboard.writeText(urlInput.value);
+      showToast('📋 Copied home Wi-Fi URL to clipboard!');
+    } catch {
+      urlInput.select();
+      document.execCommand('copy');
+      showToast('📋 Copied home Wi-Fi URL to clipboard!');
+    }
+  });
+}
+
+// ============================================================================
+// Real-Time Multi-Device Sync (Server-Sent Events)
+// ============================================================================
+
+function setupEventSource() {
+  if (typeof EventSource === 'undefined') return;
+  try {
+    const es = new EventSource('/api/events');
+    es.addEventListener('filter_updated', (e) => {
+      fetchFilters();
+      try {
+        const payload = JSON.parse(e.data);
+        if (payload.action === 'replace') {
+          showToast(`🔄 Filter marked replaced by family member`);
+        } else if (payload.action === 'snooze') {
+          showToast(`⏸️ Filter snoozed by family member`);
+        }
+      } catch (_) {}
+    });
+    es.addEventListener('filter_created', () => {
+      fetchFilters();
+      showToast('➕ New filter added to household');
+    });
+    es.addEventListener('filter_deleted', () => {
+      fetchFilters();
+      showToast('🗑️ Filter deleted from household');
+    });
+    es.onerror = () => {
+      // Automatic reconnection handled by browser EventSource
+    };
+  } catch (err) {
+    console.warn('SSE note:', err);
+  }
 }
 
 // ============================================================================
@@ -739,6 +863,9 @@ function escapeHtml(str) {
 
 // Initial Fetch
 fetchFilters();
+
+// Initialize Real-Time Sync
+setupEventSource();
 
 // Register PWA ServiceWorker
 if ('serviceWorker' in navigator) {

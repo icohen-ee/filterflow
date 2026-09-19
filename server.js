@@ -5,11 +5,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FilterEngine } from './filter_engine.js';
+import { generateQrSvg } from './qr.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3030', 10);
 const HTTPS_PORT = parseInt(process.env.HTTPS_PORT || '3443', 10);
 const engine = new FilterEngine();
+
+// Active SSE client response connections for real-time multi-device sync
+const sseClients = new Set();
+
+export function broadcastEvent(eventType, data = {}) {
+  const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const client of sseClients) {
+    try {
+      client.write(payload);
+    } catch {
+      sseClients.delete(client);
+    }
+  }
+}
 
 // Load SSL Certificates
 const certPath = path.join(__dirname, 'certs', 'cert.pem');
@@ -68,8 +83,96 @@ const requestHandler = async (req, res) => {
   }
 
   // --- API Endpoints ---
+  // Real-Time Server-Sent Events (SSE) stream for cross-device sync
+  if (pathname === '/api/events' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.write(`event: connected\ndata: ${JSON.stringify({ time: Date.now(), clients: sseClients.size + 1 })}\n\n`);
+    sseClients.add(res);
+
+    req.on('close', () => {
+      sseClients.delete(res);
+    });
+    return;
+  }
+
+  // Household & Device Sharing Metadata (QR code, Wi-Fi IP, and installation guides)
+  if (pathname === '/api/household/share' && req.method === 'GET') {
+    const networkHost = '192.168.86.47';
+    const httpUrl = `http://${networkHost}:${PORT}`;
+    const httpsUrl = `https://${networkHost}:${HTTPS_PORT}`;
+    const qrSvg = generateQrSvg(httpUrl, { size: 240, margin: 3 });
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      networkHost,
+      port: PORT,
+      httpsPort: HTTPS_PORT,
+      httpUrl,
+      httpsUrl,
+      localUrl: `http://localhost:${PORT}`,
+      qrSvg,
+      iosGuide: {
+        title: "Wife's iPhone (iOS 16.4+)",
+        steps: [
+          "Connect to home Wi-Fi and scan the QR code with iPhone Camera (or open in Safari)",
+          "Tap the Share button (⎋) in Safari bottom toolbar",
+          "Select 'Add to Home Screen' (➕) and tap Add",
+          "FilterFlow launches as a standalone app with instant load and badge support!"
+        ]
+      },
+      androidGuide: {
+        title: "Pixel 10 Pro (Android / WebAPK)",
+        steps: [
+          "Open link in Google Chrome",
+          "Tap the 'Install app' prompt or Chrome menu (⋮) -> 'Install App'",
+          "FilterFlow installs as a first-class WebAPK in your app drawer with notification channels"
+        ]
+      },
+      whatsappAssistant: {
+        title: "OpenClaw WhatsApp Assistant",
+        description: "Both Isaac & Wife can query or update filters conversationally",
+        sampleQueries: [
+          "What filters are due?",
+          "When is the fridge filter due?",
+          "Replaced fridge filter today",
+          "Snooze HVAC filter 14 days",
+          "Who replaced the HVAC filter last?",
+          "Buy car cabin filter"
+        ]
+      }
+    }));
+    return;
+  }
+
+  // Natural Language Assistant Query Dispatcher
+  if (pathname === '/api/assistant/query' && req.method === 'POST') {
+    try {
+      const data = await readBody(req);
+      const query = data.query || '';
+      const from = data.from || data.fromUser || data.by || 'Household';
+      const result = engine.handleAssistantCommand(query, from);
+      if (result.actionTaken === 'mark_replaced' || result.actionTaken === 'snooze') {
+        broadcastEvent('filter_updated', { action: result.actionTaken, filter: result.filter });
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
   if (pathname === '/api/filters' && req.method === 'GET') {
-    const filters = engine.getAllFilters();
+    const owner = url.searchParams.get('owner');
+    const category = url.searchParams.get('category');
+    const status = url.searchParams.get('status');
+    const filters = engine.getAllFilters(new Date(), { owner, category, status });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(filters));
     return;
@@ -86,6 +189,7 @@ const requestHandler = async (req, res) => {
     try {
       const data = await readBody(req);
       const created = engine.addFilter(data);
+      broadcastEvent('filter_created', { filter: created });
       res.writeHead(201, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(created));
     } catch (err) {
@@ -106,13 +210,15 @@ const requestHandler = async (req, res) => {
     }
     const replacedDate = body && body.replacedDate ? body.replacedDate : new Date().toISOString().split('T')[0];
     const notes = body && body.notes ? body.notes : '';
+    const replacedBy = body && body.replacedBy ? body.replacedBy : 'Household';
     try {
-      const updated = engine.markReplaced(id, replacedDate, notes);
+      const updated = engine.markReplaced(id, replacedDate, notes, replacedBy);
       if (!updated) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Filter not found' }));
         return;
       }
+      broadcastEvent('filter_updated', { action: 'replace', filter: updated });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(updated));
     } catch (err) {
@@ -128,12 +234,15 @@ const requestHandler = async (req, res) => {
     try {
       const data = await readBody(req);
       const days = parseInt(data.days !== undefined ? data.days : 30, 10);
-      const updated = engine.snooze(id, days);
+      const by = data.by || 'Household';
+      const reason = data.reason || `Snoozed by ${by} for vacation/low usage`;
+      const updated = engine.snooze(id, days, reason);
       if (!updated) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Filter not found' }));
         return;
       }
+      broadcastEvent('filter_updated', { action: 'snooze', filter: updated });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(updated));
     } catch (err) {
@@ -152,6 +261,7 @@ const requestHandler = async (req, res) => {
       res.end(JSON.stringify({ error: 'Filter not found' }));
       return;
     }
+    broadcastEvent('filter_deleted', { id });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true }));
     return;

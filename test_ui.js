@@ -121,4 +121,91 @@ const snoozedResult = await snoozeRes.json();
 assert.strictEqual(snoozedResult.lastSnoozeDays, 14, 'lastSnoozeDays updated correctly');
 console.log(`✅ 10. POST /snooze successfully extended filter due date.`);
 
-console.log('\n🎉 ALL 10 UI & INTEGRATION VERIFICATION TESTS PASSED SUCCESSFULLY!');
+// ============================================================================
+// SECTION 5: Cross-Platform & Household Sharing Verification
+// ============================================================================
+console.log('\n--- SECTION 5: Cross-Platform Sharing, QR Code & Household Sync ---');
+
+// 11. Household sharing modal & attribution HTML elements
+assert.ok(html.includes('id="share-btn"'), 'Header share button present');
+assert.ok(html.includes('id="share-dialog"'), 'Household sharing dialog present');
+assert.ok(html.includes('id="household-tabs"'), 'Household member tabs present');
+assert.ok(html.includes('id="replace-by"'), 'Mark Replaced family member attribution dropdown present');
+assert.ok(html.includes('id="form-owner"'), 'Add Filter owner selection present');
+console.log('✅ 11. Household sharing UI elements, tabs, and attribution dropdowns verified in HTML.');
+
+// 12. CSS styling for sharing & household tabs
+assert.ok(css.includes('.share-dialog-content'), 'Share dialog content styles defined');
+assert.ok(css.includes('.share-qr-card'), 'Share QR card styles defined');
+assert.ok(css.includes('.household-tabs'), 'Household filter tabs styled');
+assert.ok(css.includes('.qr-preview-box'), 'QR preview box container styled');
+console.log('✅ 12. Household sharing CSS styles & responsive QR layout verified.');
+
+// 13. Client-side JS multi-device sync & sharing
+assert.ok(js.includes('function openShareDialog'), 'openShareDialog handler implemented');
+assert.ok(js.includes('activeOwnerFilter'), 'Household owner filter implemented');
+assert.ok(js.includes('function setupEventSource'), 'Live SSE real-time sync listener implemented');
+console.log('✅ 13. Client-side JS sharing handlers and SSE sync verified.');
+
+// 14. Test GET /api/household/share
+const shareRes = await fetch(`${BASE_URL}/api/household/share`);
+assert.strictEqual(shareRes.status, 200, 'GET /api/household/share returned 200');
+const shareData = await shareRes.json();
+assert.ok(shareData.networkHost, 'Returns LAN IP');
+assert.ok(shareData.httpUrl && shareData.httpUrl.includes(':3030'), 'Returns local HTTP URL');
+assert.ok(shareData.httpsUrl && shareData.httpsUrl.includes(':3443'), 'Returns HTTPS URL');
+assert.ok(shareData.qrSvg && shareData.qrSvg.includes('<svg'), 'Returns generated SVG QR code');
+assert.ok(shareData.iosGuide?.steps?.length, 'Includes iPhone Safari PWA instructions');
+assert.ok(shareData.androidGuide?.steps?.length, 'Includes Pixel 10 Pro WebAPK instructions');
+console.log(`✅ 14. GET /api/household/share returned Wi-Fi IP (${shareData.networkHost}), live QR SVG, and iPhone/Pixel PWA setup guides.`);
+
+// 15. Test POST /api/assistant/query (conversational status query)
+const assistantStatusRes = await fetch(`${BASE_URL}/api/assistant/query`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    query: 'when is the fridge filter due?',
+    fromUser: 'Wife'
+  })
+});
+assert.strictEqual(assistantStatusRes.status, 200, 'POST /api/assistant/query returned 200');
+const assistantStatusData = await assistantStatusRes.json();
+assert.strictEqual(assistantStatusData.success, true);
+assert.strictEqual(assistantStatusData.actionTaken, 'filter_status');
+assert.ok(assistantStatusData.reply.includes('Refrigerator Water & Ice Filter'));
+console.log('✅ 15. POST /api/assistant/query successfully handled conversational filter status query.');
+
+// 16. Test POST /api/assistant/query (conversational mark replaced by Wife)
+const assistantReplaceRes = await fetch(`${BASE_URL}/api/assistant/query`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    query: 'replaced fridge filter today',
+    fromUser: 'Wife'
+  })
+});
+assert.strictEqual(assistantReplaceRes.status, 200, 'POST /api/assistant/query replacement returned 200');
+const assistantReplaceData = await assistantReplaceRes.json();
+assert.strictEqual(assistantReplaceData.success, true);
+assert.strictEqual(assistantReplaceData.actionTaken, 'mark_replaced');
+assert.strictEqual(assistantReplaceData.filter.lastReplacedBy, 'Wife');
+console.log('✅ 16. POST /api/assistant/query successfully processed replacement with attribution to Wife.');
+
+// 17. Test GET /api/filters with household owner filtering
+const wifeFiltersRes = await fetch(`${BASE_URL}/api/filters?owner=Wife`);
+assert.strictEqual(wifeFiltersRes.status, 200);
+const wifeFilters = await wifeFiltersRes.json();
+assert.ok(wifeFilters.every(f => f.owner === 'Wife' || f.owner === 'Household'), 'Should only return Wife or Household filters');
+console.log(`✅ 17. GET /api/filters?owner=Wife returned ${wifeFilters.length} filters assigned to Wife or Household.`);
+
+// 18. Test GET /api/events SSE stream headers
+const eventsController = new AbortController();
+const eventsRes = await fetch(`${BASE_URL}/api/events`, {
+  signal: eventsController.signal
+});
+assert.strictEqual(eventsRes.status, 200, 'GET /api/events connected with 200');
+assert.strictEqual(eventsRes.headers.get('content-type'), 'text/event-stream', 'SSE content-type is text/event-stream');
+eventsController.abort(); // Close connection
+console.log('✅ 18. GET /api/events established valid text/event-stream SSE connection for live multi-device synchronization.');
+
+console.log('\n🎉 ALL 18 UI, INTEGRATION, AND CROSS-PLATFORM TESTS PASSED SUCCESSFULLY!\n');
