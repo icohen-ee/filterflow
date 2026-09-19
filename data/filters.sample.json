@@ -10,11 +10,15 @@
     "serviceLifeDays": 90,
     "reorderUrl": "https://www.amazon.com/dp/B00T4CH2DY",
     "notes": "Change quarterly. High filtration for allergies.",
-    "lastSnoozeDays": 0,
+    "lastSnoozeDays": 14,
     "history": [
       {
         "date": "2026-09-19",
         "action": "Snoozed 30 days (Vacation / low usage extension)"
+      },
+      {
+        "date": "2026-09-19",
+        "action": "Snoozed 14 days (Snoozed by Isaac via WhatsApp Assistant)"
       }
     ]
   },
@@ -51,11 +55,20 @@
     "location": "Refrigerator Bottom Grille / Interior Compartment",
     "manufacturer": "EveryDrop / OEM",
     "modelNumber": "Filter 1 (EDR1RXD1)",
-    "installedDate": "2026-04-10",
+    "installedDate": "2026-09-19",
     "serviceLifeDays": 180,
     "reorderUrl": "https://www.amazon.com/dp/B00V5I8V0G",
     "notes": "Replace every 6 months to maintain water flow and NSF 53 filtration.",
-    "lastSnoozeDays": 0
+    "lastSnoozeDays": 0,
+    "history": [
+      {
+        "date": "2026-09-19",
+        "action": "Replaced filter (previous was installed 2026-04-10): Replaced via WhatsApp Assistant",
+        "replacedBy": "Wife",
+        "notes": "Replaced via WhatsApp Assistant"
+      }
+    ],
+    "lastReplacedBy": "Wife"
   },
   {
     "id": "filter-room-fan",

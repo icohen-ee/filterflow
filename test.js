@@ -429,7 +429,7 @@ assert(latestHistory.action.includes('Installed fresh HEPA cartridge'), 'Action 
 console.log('✅ 33. Mark replaced with family member attribution passed.');
 
 // 34. Natural language fuzzy filter matching on production filter catalog
-const prodEngine = new FilterEngine();
+const prodEngine = new FilterEngine(path.join(__dirname, 'data', 'filters.sample.json'));
 const matchedFridge = prodEngine.findFilter('refrigerator ice filter');
 assert(matchedFridge && matchedFridge.id === 'filter-fridge-water', 'Should match fridge filter');
 

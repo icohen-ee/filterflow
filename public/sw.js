@@ -1,12 +1,15 @@
 // FilterFlow PWA Service Worker (Offline First)
-const CACHE_NAME = 'filterflow-v2';
+const CACHE_NAME = 'filterflow-v3';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './icon.svg'
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {

@@ -65,9 +65,21 @@ console.log('\n--- SECTION 4: Live HTTP API Integration ---');
 const BASE_URL = 'http://localhost:3030';
 
 // Test GET /api/filters
-const filtersRes = await fetch(`${BASE_URL}/api/filters`);
+let filtersRes = await fetch(`${BASE_URL}/api/filters`);
 assert.strictEqual(filtersRes.status, 200, 'GET /api/filters returned 200');
-const filters = await filtersRes.json();
+let filters = await filtersRes.json();
+if (filters.length === 0) {
+  const sampleFilters = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'filters.sample.json'), 'utf-8'));
+  for (const sf of sampleFilters) {
+    await fetch(`${BASE_URL}/api/filters`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sf)
+    });
+  }
+  filtersRes = await fetch(`${BASE_URL}/api/filters`);
+  filters = await filtersRes.json();
+}
 assert.ok(Array.isArray(filters) && filters.length > 0, 'Filters list returned as non-empty array');
 console.log(`✅ 6. GET /api/filters returned ${filters.length} active filters with health & status metadata.`);
 
@@ -208,4 +220,8 @@ assert.strictEqual(eventsRes.headers.get('content-type'), 'text/event-stream', '
 eventsController.abort(); // Close connection
 console.log('✅ 18. GET /api/events established valid text/event-stream SSE connection for live multi-device synchronization.');
 
+// Clean up test data so database remains empty for user
+await fetch(`${BASE_URL}/api/filters/clear`, { method: 'POST' });
+
 console.log('\n🎉 ALL 18 UI, INTEGRATION, AND CROSS-PLATFORM TESTS PASSED SUCCESSFULLY!\n');
+

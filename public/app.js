@@ -14,103 +14,106 @@ const KEY_SHEETS_URL = 'filterflow_sheets_url';
 const KEY_USER_ROLE = 'filterflow_user_role';
 const KEY_LAST_SYNC = 'filterflow_last_sync';
 
-const DEFAULT_SAMPLE_FILTERS = [
-  {
-    id: 'filter-hvac-main',
-    name: 'Central HVAC Return Filter',
-    category: 'Home HVAC',
-    location: 'Main Hallway Ceiling Return',
-    manufacturer: 'Filtrete',
-    modelNumber: '20x25x1 MPR 1500 (MERV 12)',
-    installedDate: '2026-07-01',
-    serviceLifeDays: 90,
-    targetDueDate: '2026-09-29',
-    reorderUrl: 'https://www.amazon.com/dp/B00T4CH2DY',
-    owner: 'Household',
-    notes: 'Change quarterly. High filtration for allergies.',
-    lastSnoozeDays: 0,
-    lastReplacedDate: '2026-07-01',
-    lastReplacedBy: 'Isaac',
-    updatedAt: new Date().toISOString(),
-    history: [{ date: '2026-07-01', action: 'Initial installation', replacedBy: 'Isaac' }]
-  },
-  {
-    id: 'filter-fridge-water',
-    name: 'Refrigerator Water & Ice Filter',
-    category: 'Appliance',
-    location: 'Refrigerator Compartment',
-    manufacturer: 'EveryDrop / OEM',
-    modelNumber: 'Filter 1 (EDR1RXD1)',
-    installedDate: '2026-04-10',
-    serviceLifeDays: 180,
-    targetDueDate: '2026-10-07',
-    reorderUrl: 'https://www.amazon.com/dp/B00V5I8V0G',
-    owner: 'Household',
-    notes: 'Replace every 6 months to maintain water flow and NSF 53 filtration.',
-    lastSnoozeDays: 0,
-    lastReplacedDate: '2026-04-10',
-    lastReplacedBy: 'Wife',
-    updatedAt: new Date().toISOString(),
-    history: [{ date: '2026-04-10', action: 'Initial installation', replacedBy: 'Wife' }]
-  },
-  {
-    id: 'filter-car-cabin',
-    name: 'Car Cabin Air Filter (HVAC)',
-    category: 'Vehicle',
-    location: 'Behind Glove Compartment',
-    manufacturer: 'EPAuto / Bosch',
-    modelNumber: 'HEPA Cabin Filter CP134',
-    installedDate: '2025-11-15',
-    serviceLifeDays: 365,
-    targetDueDate: '2026-11-15',
-    reorderUrl: 'https://www.amazon.com/s?k=car+cabin+air+filter',
-    owner: 'Isaac',
-    notes: 'Inspect during annual oil change.',
-    lastSnoozeDays: 0,
-    lastReplacedDate: '2025-11-15',
-    lastReplacedBy: 'Isaac',
-    updatedAt: new Date().toISOString(),
-    history: [{ date: '2025-11-15', action: 'Initial installation', replacedBy: 'Isaac' }]
-  },
-  {
-    id: 'filter-car-engine',
-    name: 'Car Engine Intake Air Filter',
-    category: 'Vehicle',
-    location: 'Under Hood / Engine Bay Airbox',
-    manufacturer: 'Fram / OEM',
-    modelNumber: 'Extra Guard CA10190',
-    installedDate: '2025-10-01',
-    serviceLifeDays: 365,
-    targetDueDate: '2026-10-01',
-    reorderUrl: 'https://www.amazon.com/s?k=engine+intake+air+filter',
-    owner: 'Isaac',
-    notes: 'Protects engine combustion chamber from debris.',
-    lastSnoozeDays: 0,
-    lastReplacedDate: '2025-10-01',
-    lastReplacedBy: 'Isaac',
-    updatedAt: new Date().toISOString(),
-    history: [{ date: '2025-10-01', action: 'Initial installation', replacedBy: 'Isaac' }]
-  },
-  {
-    id: 'filter-room-fan',
-    name: 'Bedroom Air Purifier / Fan Filter',
-    category: 'Portable Appliance',
-    location: 'Primary Bedroom',
-    manufacturer: 'Levoit / Dyson',
-    modelNumber: 'True HEPA Replacement Core 300-RF',
-    installedDate: '2026-05-01',
-    serviceLifeDays: 180,
-    targetDueDate: '2026-10-28',
-    reorderUrl: 'https://www.amazon.com/s?k=true+hepa+air+purifier+replacement+filter',
-    owner: 'Wife',
-    notes: 'Vacuum pre-filter screen monthly.',
-    lastSnoozeDays: 0,
-    lastReplacedDate: '2026-05-01',
-    lastReplacedBy: 'Wife',
-    updatedAt: new Date().toISOString(),
-    history: [{ date: '2026-05-01', action: 'Initial installation', replacedBy: 'Wife' }]
+const KEY_THEME = 'filterflow_theme';
+const DEFAULT_SAMPLE_FILTERS = [];
+
+// ============================================================================
+// Theme Management (Light / Dark / Follow System)
+// ============================================================================
+
+function getStoredTheme() {
+  return localStorage.getItem(KEY_THEME) || 'system';
+}
+
+function setStoredTheme(theme) {
+  localStorage.setItem(KEY_THEME, theme);
+}
+
+function applyTheme(theme) {
+  let effectiveTheme = theme;
+  if (theme === 'system') {
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    effectiveTheme = prefersDark ? 'dark' : 'light';
   }
-];
+  document.documentElement.setAttribute('data-theme', effectiveTheme);
+
+  const metaTheme = document.getElementById('meta-theme-color');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', effectiveTheme === 'dark' ? '#161b22' : '#ffffff');
+  }
+}
+
+// Apply stored theme immediately on script execution
+applyTheme(getStoredTheme());
+
+// Listen for dynamic OS theme changes when in 'system' mode
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (getStoredTheme() === 'system') {
+      applyTheme('system');
+    }
+  });
+}
+
+// ============================================================================
+// PWA Installation & App Lifecycle
+// ============================================================================
+
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  updatePwaInstallUI();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  showToast('🎉 FilterFlow installed as standalone app!');
+  updatePwaInstallUI();
+});
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         window.navigator.standalone === true ||
+         document.referrer.includes('android-app://');
+}
+
+function updatePwaInstallUI() {
+  const pwaBtn = document.getElementById('pwa-install-btn');
+  const pwaTitle = document.getElementById('pwa-status-title');
+  const pwaDesc = document.getElementById('pwa-status-desc');
+  if (!pwaBtn || !pwaTitle || !pwaDesc) return;
+
+  if (isStandalone()) {
+    pwaTitle.textContent = 'Installed as Standalone App';
+    pwaDesc.textContent = 'FilterFlow is running in native app mode on this device.';
+    pwaBtn.textContent = 'Installed ✅';
+    pwaBtn.disabled = true;
+    pwaBtn.style.opacity = '0.6';
+  } else if (deferredPrompt) {
+    pwaTitle.textContent = 'Install FilterFlow App';
+    pwaDesc.textContent = 'Install directly to your home screen or desktop with offline access.';
+    pwaBtn.textContent = '📲 Install App';
+    pwaBtn.disabled = false;
+    pwaBtn.style.opacity = '1';
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      pwaTitle.textContent = 'Add to Home Screen (iOS)';
+      pwaDesc.textContent = 'In Safari: Tap Share (⎋) at the bottom, then scroll and select "Add to Home Screen" (➕).';
+      pwaBtn.textContent = 'Share > Add (+)';
+      pwaBtn.disabled = false;
+      pwaBtn.style.opacity = '1';
+    } else {
+      pwaTitle.textContent = 'App Shortcut / Install';
+      pwaDesc.textContent = 'Tap browser menu (⋮) -> "Install FilterFlow" or "Create Shortcut / Add to Home Screen".';
+      pwaBtn.textContent = 'Install App';
+      pwaBtn.disabled = false;
+      pwaBtn.style.opacity = '1';
+    }
+  }
+}
 
 // ============================================================================
 // State Variables
@@ -219,17 +222,23 @@ function enqueueOfflineAction(action) {
 
 function loadStoredFilters() {
   try {
+    const samplesCleared = localStorage.getItem('filterflow_samples_cleared_v2');
+    if (!samplesCleared) {
+      localStorage.setItem(KEY_FILTERS, '[]');
+      localStorage.setItem('filterflow_samples_cleared_v2', 'true');
+      return [];
+    }
     const raw = localStorage.getItem(KEY_FILTERS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(f => !f.id || (!f.id.startsWith('filter-hvac-main') && !f.id.startsWith('filter-fridge-water') && !f.id.startsWith('filter-car-cabin') && !f.id.startsWith('filter-car-engine') && !f.id.startsWith('filter-room-fan')));
       }
     }
   } catch (e) {
     console.warn('Error reading localStorage filters:', e);
   }
-  return DEFAULT_SAMPLE_FILTERS;
+  return [];
 }
 
 function saveStoredFilters(filters) {
@@ -574,7 +583,6 @@ function renderFilters() {
           <div class="card-title-wrap">
             <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
               <span class="category-badge">${escapeHtml(f.category || 'General')}</span>
-              <span class="owner-tag">👤 ${escapeHtml(f.owner || 'Household')}</span>
             </div>
             <h3 class="card-title">${escapeHtml(f.name)}</h3>
             <p class="card-location">📍 ${escapeHtml(f.location || 'Home')}</p>
@@ -584,7 +592,7 @@ function renderFilters() {
 
         <div class="specs-grid">
           <div class="spec-item">
-            <span class="spec-label">Brand & Model</span>
+            <span class="spec-label">Brand &amp; Model</span>
             <span class="spec-value">${escapeHtml(f.manufacturer || '—')} ${escapeHtml(f.modelNumber || '')}</span>
           </div>
           <div class="spec-item">
@@ -616,26 +624,26 @@ function renderFilters() {
 
         <div class="card-actions">
           <a href="${escapeHtml(reorderLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-amazon" title="Reorder replacement filter">
-            <span class="amazon-cart-icon" aria-hidden="true">🛒</span>
+            <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
             <span>${isAmazonDirect ? '1-Click Buy' : 'Find Part'}</span>
           </a>
 
           <button class="btn btn-replace" onclick="openReplaceDialog('${escapeHtml(f.id)}')" title="Mark filter replaced today">
-            <span class="check-icon" aria-hidden="true">✅</span>
+            <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <span>Replaced</span>
           </button>
 
           <button class="btn btn-snooze" onclick="openSnoozeDialog('${escapeHtml(f.id)}')" title="Vacation snooze due date">
-            <span class="pause-icon" aria-hidden="true">⏸️</span>
+            <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <span>Snooze</span>
           </button>
 
-          <button class="btn btn-icon-secondary" onclick="openHistoryDialog('${escapeHtml(f.id)}')" title="View maintenance history">
-            📜
+          <button class="btn btn-icon-secondary btn-history" onclick="openHistoryDialog('${escapeHtml(f.id)}')" title="View maintenance history" aria-label="View history">
+            <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           </button>
 
-          <button class="btn btn-icon-secondary btn-delete" onclick="deleteFilter('${escapeHtml(f.id)}')" title="Delete filter">
-            🗑️
+          <button class="btn btn-icon-secondary btn-delete" onclick="deleteFilter('${escapeHtml(f.id)}')" title="Delete filter" aria-label="Delete filter">
+            <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
           </button>
         </div>
       </article>
@@ -1152,17 +1160,6 @@ if (categoryTabs) {
   });
 }
 
-if (householdTabs) {
-  householdTabs.addEventListener('click', (e) => {
-    const chip = e.target.closest('.member-chip');
-    if (!chip) return;
-    document.querySelectorAll('.member-chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    activeOwnerFilter = chip.dataset.owner;
-    renderFilters();
-  });
-}
-
 if (searchInput) {
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value;
@@ -1189,9 +1186,6 @@ function resetFilters() {
   if (searchInput) searchInput.value = '';
   if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
   document.querySelectorAll('.tab-chip').forEach(c => c.classList.toggle('active', c.dataset.category === 'all'));
-  if (householdTabs) {
-    document.querySelectorAll('.member-chip').forEach(c => c.classList.toggle('active', c.dataset.owner === 'all'));
-  }
   document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('selected'));
   renderFilters();
 }
@@ -1253,10 +1247,13 @@ function openSettingsDialog() {
   if (!settingsDialog) return;
   const sheetsUrlInput = document.getElementById('settings-sheets-url');
   const userRoleSelect = document.getElementById('settings-user-role');
+  const themeSelect = document.getElementById('settings-theme');
 
   if (sheetsUrlInput) sheetsUrlInput.value = getSheetsUrl();
   if (userRoleSelect) userRoleSelect.value = getUserRole();
+  if (themeSelect) themeSelect.value = getStoredTheme();
 
+  updatePwaInstallUI();
   updateSyncUI();
   settingsDialog.showModal();
 }
@@ -1264,17 +1261,81 @@ function openSettingsDialog() {
 if (settingsBtn) settingsBtn.addEventListener('click', openSettingsDialog);
 if (syncQuickBtn) syncQuickBtn.addEventListener('click', () => syncWithGoogleSheets(true));
 
+// Theme live selector
+const themeSelect = document.getElementById('settings-theme');
+if (themeSelect) {
+  themeSelect.addEventListener('change', (e) => {
+    const newTheme = e.target.value;
+    setStoredTheme(newTheme);
+    applyTheme(newTheme);
+    showToast(`Theme updated: ${newTheme === 'system' ? 'Follow System' : newTheme.toUpperCase()}`);
+  });
+}
+
+// PWA Install Button handler
+const pwaInstallBtn = document.getElementById('pwa-install-btn');
+if (pwaInstallBtn) {
+  pwaInstallBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        showToast('🚀 Installing FilterFlow...');
+      } else {
+        showToast('Installation cancelled');
+      }
+      deferredPrompt = null;
+      updatePwaInstallUI();
+    } else {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        showToast('In Safari: tap Share (⎋) at bottom, then "Add to Home Screen" (➕)');
+      } else {
+        showToast('Tap browser menu (⋮) -> "Install FilterFlow" or "Create Shortcut / Add to Home screen"');
+      }
+    }
+  });
+}
+
+// Clear All Filters Button handler
+const clearAllDataBtn = document.getElementById('clear-all-data-btn');
+if (clearAllDataBtn) {
+  clearAllDataBtn.addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to clear all tracked filters? This will delete all example and tracked filters so you can add your own from scratch.')) {
+      return;
+    }
+    allFilters = [];
+    saveStoredFilters([]);
+    localStorage.setItem('filterflow_samples_cleared_v2', 'true');
+    renderFilters();
+    updateStats();
+    updateNotifications();
+
+    try {
+      await fetch('/api/filters/clear', { method: 'POST' });
+    } catch (_) {}
+
+    settingsDialog.close();
+    showToast('🗑️ All filters cleared! You can now add your own.');
+  });
+}
+
 const saveSettingsBtn = document.getElementById('save-settings-btn');
 if (saveSettingsBtn) {
   saveSettingsBtn.addEventListener('click', async () => {
     const sheetsUrlInput = document.getElementById('settings-sheets-url');
     const userRoleSelect = document.getElementById('settings-user-role');
+    const themeSel = document.getElementById('settings-theme');
 
     if (sheetsUrlInput) setSheetsUrl(sheetsUrlInput.value.trim());
     if (userRoleSelect) setUserRole(userRoleSelect.value);
+    if (themeSel) {
+      setStoredTheme(themeSel.value);
+      applyTheme(themeSel.value);
+    }
 
     settingsDialog.close();
-    showToast('💾 Cloud settings saved!');
+    showToast('💾 Preferences saved!');
     await syncWithGoogleSheets(true);
   });
 }
@@ -1329,6 +1390,14 @@ function setupEventSource() {
     es.addEventListener('filter_deleted', () => {
       fetchFilters();
       showToast('🗑️ Filter deleted from household');
+    });
+    es.addEventListener('filters_cleared', () => {
+      allFilters = [];
+      saveStoredFilters([]);
+      renderFilters();
+      updateStats();
+      updateNotifications();
+      showToast('🗑️ Filter list cleared');
     });
     es.onerror = () => {};
   } catch (_) {}

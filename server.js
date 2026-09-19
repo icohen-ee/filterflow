@@ -267,6 +267,14 @@ const requestHandler = async (req, res) => {
     return;
   }
 
+  if (pathname === '/api/filters/clear' && req.method === 'POST') {
+    engine.clearAllFilters();
+    broadcastEvent('filters_cleared', {});
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, count: 0 }));
+    return;
+  }
+
   // --- Static File Serving (with path traversal protection) ---
   const publicDir = path.resolve(__dirname, 'public');
   const safePath = path.resolve(publicDir, pathname === '/' ? 'index.html' : '.' + pathname);

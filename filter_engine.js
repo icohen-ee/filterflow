@@ -307,6 +307,11 @@ export class FilterEngine {
     return true;
   }
 
+  clearAllFilters() {
+    this.saveFilters([]);
+    return true;
+  }
+
   /**
    * Generates active notifications.
    * Supports either referenceDate (Date or ISO string) or an options object:
