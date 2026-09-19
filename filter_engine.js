@@ -218,7 +218,7 @@ export class FilterEngine {
     return this.calculateFilterStatus(newFilter);
   }
 
-  markReplaced(id, replacedDate = new Date().toISOString().split('T')[0]) {
+  markReplaced(id, replacedDate = new Date().toISOString().split('T')[0], notes = '') {
     if (!isValidISODateString(replacedDate)) {
       throw new Error(`Invalid replacement date: "${replacedDate}". Expected format YYYY-MM-DD.`);
     }
@@ -228,9 +228,10 @@ export class FilterEngine {
     if (!filter) return null;
 
     if (!filter.history) filter.history = [];
+    const cleanNotes = typeof notes === 'string' && notes.trim() ? `: ${notes.trim().slice(0, 200)}` : '';
     filter.history.push({
       date: replacedDate,
-      action: `Replaced filter (previous was installed ${filter.installedDate})`
+      action: `Replaced filter (previous was installed ${filter.installedDate})${cleanNotes}`
     });
 
     if (filter.history.length > 50) {

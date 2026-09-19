@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>FilterFlow — Filter Maintenance Tracker</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FilterFlow">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="mobile-frame">
+    <!-- Top App Bar -->
+    <header class="top-app-bar">
+      <div class="app-title-group">
+        <div class="app-logo" aria-hidden="true">🛡️</div>
+        <div>
+          <h1 class="app-title">FilterFlow</h1>
+          <p class="app-subtitle">Household & Vehicle Maintenance</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="notif-btn" class="icon-btn" aria-label="Notifications" title="View Active Alerts">
+          <span class="bell-icon" aria-hidden="true">🔔</span>
+          <span id="notif-badge" class="badge">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Health Overview Stats Bar -->
+    <section class="stats-overview" id="stats-overview" aria-label="Filter Health Overview">
+      <div class="stat-card" data-stat="all" title="Total tracked filters">
+        <span class="stat-num" id="stat-total">0</span>
+        <span class="stat-lbl">Tracked</span>
+      </div>
+      <div class="stat-card healthy" data-stat="HEALTHY" title="Healthy filters">
+        <span class="stat-num" id="stat-healthy">0</span>
+        <span class="stat-lbl">✅ Healthy</span>
+      </div>
+      <div class="stat-card warning" data-stat="EXPIRING_SOON" title="Filters due within 14 days">
+        <span class="stat-num" id="stat-soon">0</span>
+        <span class="stat-lbl">⏳ Due Soon</span>
+      </div>
+      <div class="stat-card overdue" data-stat="OVERDUE" title="Overdue filters">
+        <span class="stat-num" id="stat-overdue">0</span>
+        <span class="stat-lbl">🚨 Overdue</span>
+      </div>
+    </section>
+
+    <!-- Search & Filter Bar -->
+    <div class="search-bar-wrap">
+      <div class="search-input-box">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input type="search" id="filter-search" placeholder="Search filters by name, room, brand..." aria-label="Search filters">
+        <button id="clear-search" class="clear-search-btn hidden" aria-label="Clear search">&times;</button>
+      </div>
+    </div>
+
+    <!-- Category Tabs Chips -->
+    <nav class="category-tabs" id="category-tabs" aria-label="Filter categories">
+      <button class="tab-chip active" data-category="all">All Filters</button>
+      <button class="tab-chip" data-category="Home HVAC">Home HVAC</button>
+      <button class="tab-chip" data-category="Vehicle">Vehicle</button>
+      <button class="tab-chip" data-category="Appliance">Appliances</button>
+      <button class="tab-chip" data-category="Portable Appliance">Purifiers</button>
+      <button class="tab-chip" data-category="Other">Other</button>
+    </nav>
+
+    <!-- Main Filter Cards List -->
+    <main class="filter-list" id="filter-list" aria-live="polite">
+      <div class="loading-spinner">
+        <div class="spinner-dot"></div>
+        <p>Loading filter dashboard...</p>
+      </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button id="add-btn" class="fab" aria-label="Add Filter" title="Add a new filter">
+      <span class="fab-icon" aria-hidden="true">+</span>
+      <span class="fab-label">Add Filter</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DIALOG: Mark Replaced                                               -->
+  <!-- ========================================================================= -->
+  <dialog id="replace-dialog" class="app-dialog" closedby="any" aria-labelledby="replace-dialog-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-icon" aria-hidden="true">🔄</span>
+          <div>
+            <h2 id="replace-dialog-title" class="dialog-title">Mark Filter Replaced</h2>
+            <p class="dialog-subtitle">Record a fresh filter installation and reset cycle</p>
+          </div>
+        </div>
+        <button type="button" class="dialog-close-btn" id="close-replace-dialog" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="dialog-body">
+        <!-- Target Filter Summary Banner -->
+        <div class="dialog-target-banner" id="replace-target-banner">
+          <div class="target-name" id="replace-target-name">Central HVAC Return</div>
+          <div class="target-details" id="replace-target-meta">20x25x1 MPR 1500 • Home HVAC</div>
+          <div class="target-cycle-info" id="replace-target-cycle">Service life: 90 days • Last replaced July 1, 2026</div>
+        </div>
+
+        <form id="replace-form" class="dialog-form" method="dialog">
+          <input type="hidden" id="replace-filter-id" value="">
+
+          <div class="form-group">
+            <label for="replace-date" class="form-label">Replacement Date</label>
+            <input type="date" id="replace-date" class="form-input" required>
+            
+            <!-- Quick Date Selection Chips -->
+            <div class="quick-date-chips" aria-label="Quick date options">
+              <button type="button" class="date-chip active" data-offset="0">Today</button>
+              <button type="button" class="date-chip" data-offset="1">Yesterday</button>
+              <button type="button" class="date-chip" data-offset="2">2 Days Ago</button>
+              <button type="button" class="date-chip" data-offset="7">1 Week Ago</button>
+            </div>
+          </div>
+
+          <!-- Dynamic Live Due Date Preview -->
+          <div class="live-preview-box">
+            <span class="preview-icon" aria-hidden="true">🗓️</span>
+            <div>
+              <div class="preview-label">Next Target Expiration Date</div>
+              <div class="preview-value" id="replace-next-due-preview">—</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="replace-notes" class="form-label">Notes (Optional)</label>
+            <input type="text" id="replace-notes" class="form-input" placeholder="e.g. Wiped return grill, installed Filtrete 4-pack" maxlength="200">
+          </div>
+
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-replace-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submit-replace-btn">
+              <span>✅ Confirm Replacement</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DIALOG: Snooze Filter (Vacation / Low Usage)                        -->
+  <!-- ========================================================================= -->
+  <dialog id="snooze-dialog" class="app-dialog" closedby="any" aria-labelledby="snooze-dialog-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-icon" aria-hidden="true">⏸️</span>
+          <div>
+            <h2 id="snooze-dialog-title" class="dialog-title">Snooze Filter Expiration</h2>
+            <p class="dialog-subtitle">Extend service life when HVAC was idle on vacation</p>
+          </div>
+        </div>
+        <button type="button" class="dialog-close-btn" id="close-snooze-dialog" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="dialog-body">
+        <div class="dialog-target-banner" id="snooze-target-banner">
+          <div class="target-name" id="snooze-target-name">Filter Name</div>
+          <div class="target-details" id="snooze-target-meta">Current Due Date: Sept 29, 2026</div>
+        </div>
+
+        <form id="snooze-form" class="dialog-form" method="dialog">
+          <input type="hidden" id="snooze-filter-id" value="">
+
+          <div class="form-group">
+            <label class="form-label">Extension Duration</label>
+            <div class="snooze-options-grid">
+              <label class="snooze-radio-card">
+                <input type="radio" name="snooze-days" value="14">
+                <span class="snooze-card-text">
+                  <strong>+14 Days</strong>
+                  <small>2-week trip</small>
+                </span>
+              </label>
+              <label class="snooze-radio-card active">
+                <input type="radio" name="snooze-days" value="30" checked>
+                <span class="snooze-card-text">
+                  <strong>+30 Days</strong>
+                  <small>1 month vacation</small>
+                </span>
+              </label>
+              <label class="snooze-radio-card">
+                <input type="radio" name="snooze-days" value="60">
+                <span class="snooze-card-text">
+                  <strong>+60 Days</strong>
+                  <small>Seasonal pause</small>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Dynamic Snooze Preview -->
+          <div class="live-preview-box">
+            <span class="preview-icon" aria-hidden="true">🏖️</span>
+            <div>
+              <div class="preview-label">New Extended Due Date</div>
+              <div class="preview-value" id="snooze-new-due-preview">—</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="snooze-reason" class="form-label">Reason / Notes</label>
+            <input type="text" id="snooze-reason" class="form-input" placeholder="e.g. Away for summer vacation" maxlength="150" value="Vacation / low usage extension">
+          </div>
+
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-snooze-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submit-snooze-btn">
+              <span>⏸️ Extend Due Date</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DIALOG: Filter Maintenance History                                  -->
+  <!-- ========================================================================= -->
+  <dialog id="history-dialog" class="app-dialog" closedby="any" aria-labelledby="history-dialog-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-icon" aria-hidden="true">📜</span>
+          <div>
+            <h2 id="history-dialog-title" class="dialog-title">Maintenance History</h2>
+            <p class="dialog-subtitle" id="history-dialog-subtitle">Filter audit log</p>
+          </div>
+        </div>
+        <button type="button" class="dialog-close-btn" id="close-history-dialog" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="dialog-body">
+        <div class="history-timeline" id="history-timeline">
+          <!-- Populated dynamically -->
+        </div>
+        <div class="dialog-actions" style="margin-top: 16px;">
+          <button type="button" class="btn btn-secondary" id="close-history-btn" style="width: 100%;">Close History</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DIALOG: Smart Notifications Drawer                                  -->
+  <!-- ========================================================================= -->
+  <dialog id="notif-dialog" class="app-dialog" closedby="any" aria-labelledby="notif-dialog-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-icon" aria-hidden="true">🔔</span>
+          <div>
+            <h2 id="notif-dialog-title" class="dialog-title">Smart Notifications</h2>
+            <p class="dialog-subtitle">Pre-order warnings & overdue maintenance</p>
+          </div>
+        </div>
+        <button type="button" class="dialog-close-btn" id="close-notif-dialog" aria-label="Close notifications">&times;</button>
+      </div>
+
+      <div class="dialog-body">
+        <div id="notif-list" class="notif-list-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DIALOG: Add Filter                                                  -->
+  <!-- ========================================================================= -->
+  <dialog id="add-dialog" class="app-dialog" closedby="any" aria-labelledby="add-dialog-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-icon" aria-hidden="true">➕</span>
+          <div>
+            <h2 id="add-dialog-title" class="dialog-title">Add New Filter</h2>
+            <p class="dialog-subtitle">Track household HVAC, vehicles, or appliances</p>
+          </div>
+        </div>
+        <button type="button" class="dialog-close-btn" id="close-add-dialog" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <form id="add-form" class="dialog-form" method="dialog">
+        <div class="form-group">
+          <label for="form-name" class="form-label">Filter Name *</label>
+          <input type="text" id="form-name" class="form-input" placeholder="e.g. Basement HVAC Return Filter" required maxlength="100">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-category" class="form-label">Category *</label>
+            <select id="form-category" class="form-input">
+              <option value="Home HVAC">Home HVAC</option>
+              <option value="Vehicle">Vehicle</option>
+              <option value="Appliance">Appliance</option>
+              <option value="Portable Appliance">Portable Appliance</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-location" class="form-label">Location</label>
+            <input type="text" id="form-location" class="form-input" placeholder="e.g. Basement Ceiling" maxlength="100">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-mfr" class="form-label">Manufacturer / Brand</label>
+            <input type="text" id="form-mfr" class="form-input" placeholder="e.g. Filtrete, Bosch" maxlength="100">
+          </div>
+          <div class="form-group">
+            <label for="form-model" class="form-label">Model / Dimensions</label>
+            <input type="text" id="form-model" class="form-input" placeholder="e.g. 16x25x1 MPR 1000" maxlength="100">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-date" class="form-label">Installed Date *</label>
+            <input type="date" id="form-date" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label for="form-life" class="form-label">Service Life *</label>
+            <select id="form-life" class="form-input">
+              <option value="30">1 Month (30 Days)</option>
+              <option value="60">2 Months (60 Days)</option>
+              <option value="90" selected>3 Months (90 Days - Standard HVAC)</option>
+              <option value="180">6 Months (180 Days - Fridge / Water)</option>
+              <option value="365">1 Year (365 Days - Car Cabin/Engine)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-url" class="form-label">1-Click Amazon / Reorder URL</label>
+          <input type="url" id="form-url" class="form-input" placeholder="https://www.amazon.com/dp/...">
+          <small class="form-help">Leave blank to auto-generate a 1-click Amazon search query.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="form-notes" class="form-label">Installation Notes</label>
+          <input type="text" id="form-notes" class="form-input" placeholder="e.g. High allergen filter; air arrow points up" maxlength="250">
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="cancel-add-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submit-add-btn">Save Filter</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

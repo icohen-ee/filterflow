@@ -98,14 +98,27 @@ const requestHandler = async (req, res) => {
   const replaceMatch = pathname.match(/^\/api\/filters\/([^/]+)\/replace$/);
   if (replaceMatch && req.method === 'POST') {
     const id = replaceMatch[1];
-    const updated = engine.markReplaced(id);
-    if (!updated) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Filter not found' }));
-      return;
+    let body = {};
+    try {
+      body = await readBody(req);
+    } catch {
+      body = {};
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(updated));
+    const replacedDate = body && body.replacedDate ? body.replacedDate : new Date().toISOString().split('T')[0];
+    const notes = body && body.notes ? body.notes : '';
+    try {
+      const updated = engine.markReplaced(id, replacedDate, notes);
+      if (!updated) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Filter not found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(updated));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 

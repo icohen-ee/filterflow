@@ -65,12 +65,13 @@ assert.strictEqual(statusAfterSnooze.status, 'EXPIRING_SOON');
 assert.strictEqual(statusAfterSnooze.daysRemaining, 10);
 console.log('✅ 5. Vacation snooze (+30 days) extension passed.');
 
-// 6. Replacement check
-const replaced = engine.markReplaced(created.id, '2026-09-19');
+// 6. Replacement check with custom notes
+const replaced = engine.markReplaced(created.id, '2026-09-19', 'Cleaned intake grill');
 assert.strictEqual(replaced.installedDate, '2026-09-19');
 assert.strictEqual(replaced.lastSnoozeDays, 0); // Snooze reset
 assert.strictEqual(replaced.targetDueDate, '2026-12-18');
-console.log('✅ 6. Filter replacement & lifecycle reset passed.');
+assert.strictEqual(replaced.history[replaced.history.length - 1].action.includes('Cleaned intake grill'), true);
+console.log('✅ 6. Filter replacement & lifecycle reset with notes passed.');
 
 // 7. Delete check
 const deleted = engine.deleteFilter(created.id);

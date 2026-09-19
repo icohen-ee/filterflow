@@ -1,0 +1,17 @@
+{
+  "name": "filter-tracker",
+  "version": "1.0.0",
+  "description": "Smart Household & Vehicle Filter Maintenance Tracker for Google Pixel & Cross-Platform",
+  "type": "module",
+  "main": "filter_engine.js",
+  "bin": {
+    "filter-tracker": "./cli.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "status": "node cli.js list",
+    "alerts": "node cli.js notifications",
+    "test": "node test.js"
+  },
+  "dependencies": {}
+}

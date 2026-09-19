@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#1e2025"/>
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4285F4"/>
+      <stop offset="100%" stop-color="#34A853"/>
+    </linearGradient>
+  </defs>
+  <path d="M256 64L112 128v128c0 102.4 61.4 198.4 144 224 82.6-25.6 144-121.6 144-224V128L256 64z" fill="url(#shieldGrad)"/>
+  <!-- Filter slats -->
+  <line x1="170" y1="180" x2="342" y2="180" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+  <line x1="170" y1="230" x2="342" y2="230" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+  <line x1="170" y1="280" x2="342" y2="280" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+  <line x1="190" y1="330" x2="322" y2="330" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+  <line x1="220" y1="380" x2="292" y2="380" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+</svg>
